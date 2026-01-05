@@ -1533,3 +1533,12 @@ table.tier-table .fa-solid.fa-check{
   table.tier-table tbody td{ padding: 12px 12px; }
 }
 
+
+/* ================================
+   FAQ FIX – allow answers to open
+   (JS toggles either li.active or h4.active)
+================================ */
+.faqs-service li p{ display:none; } /* keep default closed */
+.faqs-service li.active p{ display:block !important; }
+.faqs-service li h4.active + p{ display:block !important; }
+
