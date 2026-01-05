@@ -652,28 +652,21 @@ body.noscroll{overflow:hidden!important;}
 <script>
 (function(){
   function initFAQVanilla(){
-    // Support IDs used across pages/versions
-    var root = document.getElementById('faq') ||
-               document.getElementById('rcr-faq') ||
-               document.getElementById('skysure-faq');
+    var root =
+      document.getElementById('faq') ||
+      document.getElementById('skysure-faq') ||
+      document.getElementById('rcr-faq');
     if(!root) return;
 
-    var headers = root.querySelectorAll('.faqs-service li > h4');
-    if(!headers.length) return;
+    // If #skysure-faq is a container inside #faq, use it
+    var inner = root.querySelector('.faqs-service') ? root : (document.getElementById('skysure-faq') || root);
 
-    // Ensure answers start closed
-    headers.forEach(function(h){
-      h.classList.remove('active');
-      h.setAttribute('role','button');
-      h.setAttribute('tabindex','0');
-      h.setAttribute('aria-expanded','false');
-      var p = h.nextElementSibling;
-      if(p && p.tagName === 'P'){ p.style.display = 'none'; }
-    });
+    var headers = inner.querySelectorAll('.faqs-service h4');
+    if(!headers || !headers.length) return;
 
-    function closeOther(openHeader){
+    function closeAll(except){
       headers.forEach(function(h){
-        if(h === openHeader) return;
+        if(except && h === except) return;
         h.classList.remove('active');
         h.setAttribute('aria-expanded','false');
         var p = h.nextElementSibling;
@@ -681,32 +674,41 @@ body.noscroll{overflow:hidden!important;}
       });
     }
 
-    function toggle(h){
-      var p = h.nextElementSibling;
-      if(!p || p.tagName !== 'P') return;
-
-      var isOpen = h.classList.contains('active');
-      if(isOpen){
-        h.classList.remove('active');
-        h.setAttribute('aria-expanded','false');
-        p.style.display = 'none';
-      } else {
-        closeOther(h);
-        h.classList.add('active');
-        h.setAttribute('aria-expanded','true');
-        p.style.display = 'block';
-      }
-    }
-
+    // init closed
     headers.forEach(function(h){
-      h.addEventListener('click', function(){ toggle(h); });
+      h.setAttribute('tabindex', h.getAttribute('tabindex') || '0');
+      h.setAttribute('role', h.getAttribute('role') || 'button');
+      h.setAttribute('aria-expanded','false');
+      var p = h.nextElementSibling;
+      if(p && p.tagName === 'P'){ p.style.display = 'none'; }
+      h.addEventListener('click', function(e){
+        e.preventDefault();
+        var p2 = h.nextElementSibling;
+        if(!p2 || p2.tagName !== 'P') return;
+        var open = h.classList.contains('active');
+        closeAll(h);
+        if(open){
+          h.classList.remove('active');
+          h.setAttribute('aria-expanded','false');
+          p2.style.display = 'none';
+        }else{
+          h.classList.add('active');
+          h.setAttribute('aria-expanded','true');
+          p2.style.display = 'block';
+        }
+      });
       h.addEventListener('keydown', function(e){
         if(e.key === 'Enter' || e.key === ' '){
           e.preventDefault();
-          toggle(h);
+          h.click();
         }
       });
     });
+
+    // If landing with #faq in URL, ensure it's visible on load
+    if(location.hash && location.hash.toLowerCase() === '#faq'){
+      try { root.scrollIntoView({behavior:'smooth'}); } catch(e){}
+    }
   }
 
   if(document.readyState !== 'loading') initFAQVanilla();
