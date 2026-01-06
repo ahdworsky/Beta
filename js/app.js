@@ -278,59 +278,67 @@
     window.openReportGallery   = function(i){ if(REPORT_LIST && REPORT_LIST.length>1) openImageLightbox(REPORT_LIST, i||0); else openImageLightbox('images/two.jpg', 0); };
 
     
-
-// ---------- FAQ Toggle (Single Source of Truth) ----------
-// Uses capture-phase click handling to prevent legacy/duplicate handlers from immediately closing answers.
-(function faqCaptureToggle(){
-  function closest(el, sel){
-    while(el && el !== document){
-      if(el.matches && el.matches(sel)) return el;
-      el = el.parentNode;
-    }
-    return null;
-  }
-
-  document.addEventListener('click', function(e){
-    var h = closest(e.target, '.faqs-service h4');
-    if(!h) return;
-
-    var li = closest(h, '.faqs-service li');
-    if(!li) return;
-
-    // Only handle FAQs within known sections (home + report)
-    var scope = closest(li, '#skysure-faq') || closest(li, '#faq') || closest(li, '#rcr-faq');
-    if(!scope) return;
-
-    // Stop other FAQ scripts from firing (prevents "flash then close")
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Close siblings
-    var openLis = scope.querySelectorAll('.faqs-service li.active');
-    openLis.forEach(function(x){
-      if(x !== li) {
-        x.classList.remove('active');
-        var ph = x.querySelector('h4');
-        if(ph) ph.setAttribute('aria-expanded','false');
-        var pp = x.querySelector('p');
-        if(pp) pp.style.display = 'none';
+    // ---------- FAQ Toggle (single source of truth; home + roof report) ----------
+    (function(){
+      function closest(el, sel){
+        while(el && el !== document){
+          if(el.matches && el.matches(sel)) return el;
+          el = el.parentNode;
+        }
+        return null;
       }
-    });
 
-    var p = li.querySelector('p');
-    var isOpen = li.classList.contains('active');
+      function initFAQ(){
+        if(document.documentElement.dataset.faqBound === '1') return;
+        document.documentElement.dataset.faqBound = '1';
 
-    if(isOpen){
-      li.classList.remove('active');
-      h.setAttribute('aria-expanded','false');
-      if(p) p.style.display = 'none';
-    } else {
-      li.classList.add('active');
-      h.setAttribute('aria-expanded','true');
-      if(p) p.style.display = 'block';
-    }
-  }, true);
-})();
+        // Capture-phase so we win even if legacy handlers exist
+        document.addEventListener('click', function(e){
+          var h = closest(e.target, '.faqs-service h4');
+          if(!h) return;
+
+          var li = closest(h, '.faqs-service li');
+          if(!li) return;
+
+          // Only operate inside our FAQ sections
+          var scope = closest(li, '#skysure-faq') || closest(li, '#faq') || closest(li, '#rcr-faq');
+          if(!scope) return;
+
+          // Prevent other FAQ handlers from re-hiding/closing
+          e.preventDefault();
+          e.stopPropagation();
+
+          var all = scope.querySelectorAll('.faqs-service li.active');
+          all.forEach(function(x){ if(x !== li) x.classList.remove('active'); });
+
+          li.classList.toggle('active');
+        }, true);
+
+        // Keyboard support
+        document.addEventListener('keydown', function(e){
+          if(e.key !== 'Enter' && e.key !== ' ') return;
+          var h = closest(e.target, '.faqs-service h4');
+          if(!h) return;
+
+          var li = closest(h, '.faqs-service li');
+          if(!li) return;
+
+          var scope = closest(li, '#skysure-faq') || closest(li, '#faq') || closest(li, '#rcr-faq');
+          if(!scope) return;
+
+          e.preventDefault();
+          e.stopPropagation();
+
+          var all = scope.querySelectorAll('.faqs-service li.active');
+          all.forEach(function(x){ if(x !== li) x.classList.remove('active'); });
+
+          li.classList.toggle('active');
+        }, true);
+      }
+
+      if(document.readyState !== 'loading') initFAQ();
+      else document.addEventListener('DOMContentLoaded', initFAQ);
+    })();
 
 console.log('[app.js] loaded: modals + galleries wired');
   });
