@@ -278,63 +278,60 @@
     window.openReportGallery   = function(i){ if(REPORT_LIST && REPORT_LIST.length>1) openImageLightbox(REPORT_LIST, i||0); else openImageLightbox('images/two.jpg', 0); };
 
     
-    // ---------- FAQ Toggle (Roof Condition Report + Home) ----------
-    (function initFAQ(){
-      // Support multiple containers/ids (home uses #skysure-faq, report page may use #faq or #rcr-faq)
-      var root = document.getElementById('skysure-faq') ||
-                 document.getElementById('faq') ||
-                 document.getElementById('rcr-faq');
-      if(!root) return;
 
-      var headers = root.querySelectorAll('.faqs-service li h4');
-      if(!headers || !headers.length) return;
+// ---------- FAQ Toggle (Single Source of Truth) ----------
+// Uses capture-phase click handling to prevent legacy/duplicate handlers from immediately closing answers.
+(function faqCaptureToggle(){
+  function closest(el, sel){
+    while(el && el !== document){
+      if(el.matches && el.matches(sel)) return el;
+      el = el.parentNode;
+    }
+    return null;
+  }
 
-      function closeAll(except){
-        headers.forEach(function(h){
-          if(except && h === except) return;
-          h.classList.remove('active');
-          h.setAttribute('aria-expanded','false');
-          var p = h.nextElementSibling;
-          if(p && p.tagName === 'P'){ p.style.display = 'none'; }
-        });
+  document.addEventListener('click', function(e){
+    var h = closest(e.target, '.faqs-service h4');
+    if(!h) return;
+
+    var li = closest(h, '.faqs-service li');
+    if(!li) return;
+
+    // Only handle FAQs within known sections (home + report)
+    var scope = closest(li, '#skysure-faq') || closest(li, '#faq') || closest(li, '#rcr-faq');
+    if(!scope) return;
+
+    // Stop other FAQ scripts from firing (prevents "flash then close")
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Close siblings
+    var openLis = scope.querySelectorAll('.faqs-service li.active');
+    openLis.forEach(function(x){
+      if(x !== li) {
+        x.classList.remove('active');
+        var ph = x.querySelector('h4');
+        if(ph) ph.setAttribute('aria-expanded','false');
+        var pp = x.querySelector('p');
+        if(pp) pp.style.display = 'none';
       }
+    });
 
-      headers.forEach(function(h){
-        // ensure accessibility attributes
-        h.setAttribute('tabindex','0');
-        h.setAttribute('role','button');
-        if(!h.hasAttribute('aria-expanded')) h.setAttribute('aria-expanded','false');
+    var p = li.querySelector('p');
+    var isOpen = li.classList.contains('active');
 
-        // start closed (CSS already hides p; we enforce inline in case another rule overrides)
-        var p = h.nextElementSibling;
-        if(p && p.tagName === 'P'){ p.style.display = 'none'; }
+    if(isOpen){
+      li.classList.remove('active');
+      h.setAttribute('aria-expanded','false');
+      if(p) p.style.display = 'none';
+    } else {
+      li.classList.add('active');
+      h.setAttribute('aria-expanded','true');
+      if(p) p.style.display = 'block';
+    }
+  }, true);
+})();
 
-        function toggle(){
-          var p = h.nextElementSibling;
-          if(!p || p.tagName !== 'P') return;
-          var isOpen = h.classList.contains('active');
-          if(isOpen){
-            h.classList.remove('active');
-            h.setAttribute('aria-expanded','false');
-            p.style.display = 'none';
-          } else {
-            closeAll(h);
-            h.classList.add('active');
-            h.setAttribute('aria-expanded','true');
-            p.style.display = 'block';
-          }
-        }
-
-        h.addEventListener('click', function(e){ e.preventDefault(); toggle(); });
-        h.addEventListener('keydown', function(e){
-          if(e.key === 'Enter' || e.key === ' '){
-            e.preventDefault();
-            toggle();
-          }
-        });
-      });
-    })();
-
-    console.log('[app.js] loaded: modals + galleries wired');
+console.log('[app.js] loaded: modals + galleries wired');
   });
 })();
